@@ -1,0 +1,51 @@
+diff --git a/scripts/overlay-text.sh b/scripts/overlay-text.sh
+index 54c256b..683ef76 100755
+--- a/scripts/overlay-text.sh
++++ b/scripts/overlay-text.sh
+@@ -14,6 +14,7 @@ set -euo pipefail
+ #   --fontsize <size>    Font size (default: 48)
+ #   --fontcolor <color>  Font color (default: white)
+ #   --bg <color>         Background color with opacity, e.g. black@0.5 (default: none)
++#   --font <file>        Font file with Cyrillic (default: auto-detect)
+ #   --output <path>      Output path (default: <input>_overlay.<ext>)
+ #
+ # Examples:
+@@ -41,6 +42,16 @@ FONTSIZE="48"
+ FONTCOLOR="white"
+ BG=""
+ OUTPUT=""
++# Font with Cyrillic support: env VIDEO_FONT, else first existing candidate
++FONTFILE="${VIDEO_FONT:-}"
++if [[ -z "$FONTFILE" ]]; then
++    for f in "/System/Library/Fonts/Supplemental/Arial.ttf" \
++             "/System/Library/Fonts/Supplemental/Arial Unicode.ttf" \
++             "/Library/Fonts/Arial Unicode.ttf" \
++             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"; do
++        [[ -f "$f" ]] && FONTFILE="$f" && break
++    done
++fi
+ 
+ while [[ $# -gt 0 ]]; do
+     case "$1" in
+@@ -72,6 +83,10 @@ while [[ $# -gt 0 ]]; do
+             BG="$2"
+             shift 2
+             ;;
++        --font)
++            FONTFILE="$2"
++            shift 2
++            ;;
+         --output)
+             OUTPUT="$2"
+             shift 2
+@@ -175,6 +190,10 @@ ESCAPED_TEXT="${ESCAPED_TEXT//\'/\'\\\'\'}"
+ # Build drawtext filter
+ FILTER="drawtext=text='${ESCAPED_TEXT}':${POSITION_XY}:fontsize=${FONTSIZE}:fontcolor=${FONTCOLOR}"
+ 
++if [[ -n "$FONTFILE" ]]; then
++    FILTER="${FILTER}:fontfile='${FONTFILE//:/\\:}'"
++fi
++
+ # Add background box if specified
+ if [[ -n "$BG" ]]; then
+     FILTER="${FILTER}:box=1:boxcolor=${BG}:boxborderw=10"
